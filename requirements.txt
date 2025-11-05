@@ -7,4 +7,6 @@ six==1.17.0
 tzdata==2025.2
 scipy<1.16.0
 statsmodels==0.14.5
+scikit-learn==1.7
 
+#    pip install -r requirements.txt

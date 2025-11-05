@@ -123,4 +123,8 @@ def main():
     data_nonVC = active_investors_analyze(data)
 
     data_VC = vc_investors_analyze(data)
+
+    from synthetic import data_read_data2
+    data2 = data_read_data2('data/data2.csv')
+    
 main()
