@@ -1,5 +1,6 @@
 from sklearn.linear_model import LinearRegression
 import numpy as np
+import pandas as pd
 
 def data_read_data2(file_path):
     import pandas as pd
@@ -62,5 +63,65 @@ def data_read_data2(file_path):
         data_cleaned.loc[s, data_cleaned.columns[missing_mask]] = predicted_values
 
     data_imputed = data_cleaned
-    print(data_imputed)
+    return data_imputed
 
+def synthetic_analysis_t2(data):
+    from synthdid.model import SynthDID
+    
+    return
+
+def synthetic_analysis_t1(data):
+    
+    print(data)
+
+    states = ["California", "New York", "Massachusetts", "Florida", "Texas", "Maryland", "Illinois", "Washington", "Virginia", "District of Columbia", "Connecticut", "Pennsylvania", "Colorado", "Georgia", "Utah", "Michigan", "Ohio", "North Carolina", "Missouri", "Tennessee", "Wisconsin", "Indiana", "Oregon"]
+    data_scm = pd.DataFrame(data, index=states)
+    data_scm.columns = data_scm.columns.astype(int)
+    # num_data_rows = len(data)
+    # print(num_data_rows)
+    # print(len(idx_states))
+
+    df_long = data_scm.reset_index().rename(columns={'index': 'State'})
+    df_long = pd.melt(df_long, id_vars='State', var_name='Year', value_name='Value')
+
+
+    ######
+    UNIT_VAR = 'State'        
+    TIME_VAR = 'Year'         
+    OUTCOME_VAR = 'Value'     
+    TREATMENT_UNIT = 'California'
+    TREATMENT_START_YEAR = 2020
+    CONTROL_POOL = states
+    TIME_START = df_long['Year'].min() # e.g., 2008
+
+    # Time period used to optimize the weights (pre-treatment period)
+    TIME_PRE_TREATMENT = range(TIME_START, TREATMENT_START_YEAR)
+
+    import pysyncon
+    CONTROL_IDENTIFIERS = [s for s in CONTROL_POOL if s != TREATMENT_UNIT]
+    dp = pysyncon.Dataprep(
+        foo=df_long, # Note: Dataprep requires the DataFrame to be passed as 'foo'
+        predictors=[OUTCOME_VAR],
+        predictors_op='mean', 
+        dependent=OUTCOME_VAR,
+        unit_variable=UNIT_VAR,
+        time_variable=TIME_VAR,
+        treatment_identifier=TREATMENT_UNIT,
+        controls_identifier=CONTROL_IDENTIFIERS,
+        time_predictors_prior=TIME_PRE_TREATMENT, 
+        time_optimize_ssr=TIME_PRE_TREATMENT
+
+    )
+
+    # The Synth constructor accepts the Dataprep object as its main input.
+    scm = pysyncon.Synth()
+    scm.dataprep = dp
+    scm.fit(dp)
+
+    import matplotlib.pyplot as plt
+
+    # scm.path_plot()
+
+    summary_results = scm.summary()
+    # print(summary_results)
+    print(scm.weights())

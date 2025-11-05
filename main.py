@@ -125,6 +125,10 @@ def main():
     data_VC = vc_investors_analyze(data)
 
     from synthetic import data_read_data2
+    from synthetic import synthetic_analysis_t1, synthetic_analysis_t2
+
     data2 = data_read_data2('data/data2.csv')
-    
+    # synthetic_analysis_t1(data2)
+
+
 main()
