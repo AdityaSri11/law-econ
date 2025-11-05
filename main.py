@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np 
+import statsmodels.formula.api as smf
+
 
 def data_1(file_path):
     
@@ -45,8 +47,6 @@ def active_investors_analyze(data):
     df_long.loc[:, 'AFTER_PERIOD'] = np.where(df_long['Year'] >= TREATMENT_YEAR, 1, 0)
     df_long.loc[:, 'INTERACTION'] = df_long['TREATMENT_GROUP'] * df_long['AFTER_PERIOD']
 
-    import statsmodels.formula.api as smf
-
     model = smf.ols('Outcome_Value ~ TREATMENT_GROUP + AFTER_PERIOD + INTERACTION', data=df_long).fit()
 
     ALPHA = 0.05
@@ -64,12 +64,63 @@ def active_investors_analyze(data):
 
 def vc_investors_analyze(data):
     
+    data['# US VC Tech'] = data['# Active US VC Investors'] - data['# Active US VC Life Science Investors']
+
+    df_long = pd.melt(
+        data,
+        id_vars=['Year'],
+        value_vars=['# US VC Tech', '# Active US VC Life Science Investors'],
+        var_name='Group_Name',
+        value_name='Outcome_Value'
+    )
+    
+    # Crucial step: Reset index after melt to ensure a simple 0..N index
+    df_long = df_long.reset_index(drop=True)
+
+    TREATMENT_YEAR = 2020
+    
+    # --- CHANGE: Define the NEW Treated Group (VC Tech) to make Life Science the Control ---
+    TREATED_GROUP_NAME = '# US VC Tech' 
+    
+    # Use .loc for explicit assignment when creating dummy variables
+    # The 'Who' is now the VC Tech Investor group
+    df_long.loc[:, 'TREATMENT_GROUP'] = np.where(df_long['Group_Name'] == TREATED_GROUP_NAME, 1, 0)
+    
+    # The 'When' remains 2020 and later
+    df_long.loc[:, 'AFTER_PERIOD'] = np.where(df_long['Year'] >= TREATMENT_YEAR, 1, 0)
+    
+    # Interaction term remains (Treated * After)
+    df_long.loc[:, 'INTERACTION'] = df_long['TREATMENT_GROUP'] * df_long['AFTER_PERIOD']
+
+    # FIX: Use .copy() just before the final regression call. This ensures 
+    # the DataFrame passed to smf.ols is a simple, contiguous block of data 
+    # with a basic integer index, resolving the shape (40, 40) ValueError.
+    df_final = df_long[['Outcome_Value', 'TREATMENT_GROUP', 'AFTER_PERIOD', 'INTERACTION']].copy()
+    
+    model = smf.ols('Outcome_Value ~ TREATMENT_GROUP + AFTER_PERIOD + INTERACTION', data=df_final).fit()
+
+    # START: MOVED PRINT LOGIC FROM main()
+    ALPHA = 0.05
+
+    did_estimate = model.params['INTERACTION']
+    p_value = model.pvalues['INTERACTION']
+
+    is_significant = p_value < ALPHA
+    significance_text = "is statistically significant" if is_significant else "is NOT statistically significant"
+
+    print("\n--- DiD Conclusion ---")
+    print(f"DiD Estimate (Estimated Effect on Tech Group post-2020): {did_estimate:,.2f} investors")
+    print(f"P-value for Interaction Term: {p_value:.4f}")
+    print(f"Conclusion: The estimated treatment effect {significance_text} at the {ALPHA*100:.0f}% level.")
+    
+    # return model
+
     return 
 
 def main():
 
     data = data_1('data/data1.csv')
-    data_1 = active_investors_analyze(data)
+    data_nonVC = active_investors_analyze(data)
 
-    data_2 = vc_investors_analyze(data)
+    data_VC = vc_investors_analyze(data)
 main()
