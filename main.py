@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np 
 import statsmodels.formula.api as smf
+import numpy as np
 
 
 def data_1(file_path):
@@ -124,10 +125,12 @@ def main():
 
     data_VC = vc_investors_analyze(data)
 
-    from synthetic import data_read_data2
-    from synthetic import synthetic_analysis_t1, synthetic_analysis_t2
+    # from synthetic import data_read_data2
+    # from synthetic import synthetic_analysis_t1, synthetic_analysis_t2
 
-    data2 = data_read_data2('data/data2.csv')
+    # data2 = data_read_data2('data/data2.csv')
+    # data2.to_csv('data/data2_5.csv', index=False) 
+    # synthetic_analysis_t2(data2)
     # synthetic_analysis_t1(data2)
 
 
